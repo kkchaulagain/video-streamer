@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Video Streaming</title>
+    <title>Webcam Stream</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   </head>
   <body>
-    <h1>Video Streaming</h1>
-    <img id="stream" src="" width="70%" />
+    <video id="video" controls autoplay></video>
     <script>
-      setInterval(() => {
-        document.getElementById("stream").src =
-          "/video_feed?t=" + new Date().getTime();
-      }, 100);
+      if (Hls.isSupported()) {
+        var video = document.getElementById("video");
+        var hls = new Hls();
+        hls.loadSource("/hls_stream.m3u8");
+        hls.attachMedia(video);
+      }
     </script>
   </body>
 </html>
