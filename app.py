@@ -1,31 +1,44 @@
-from flask import Flask, render_template, Response
-from flask_socketio import SocketIO
+from flask import Flask, Response, render_template
 import cv2
+import threading
+
+outputFrame = None
+lock = threading.Lock()
 
 app = Flask(__name__)
-socketio = SocketIO(app)
 
-camera = cv2.VideoCapture(0)  # use 0 for web camera
-
-def gen_frames():
-    while True:
-        success, frame = camera.read()
-        if not success:
-            break
-        else:
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+camera = cv2.VideoCapture(0)
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
+def generate():
+    global outputFrame, lock
+    while True:
+        with lock:
+            if outputFrame is None:
+                continue
+            (flag, encodedImage) = cv2.imencode(".jpg", outputFrame)
+            if not flag:
+                continue
+        yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + bytearray(encodedImage) + b'\r\n')
+
 @app.route('/video_feed')
 def video_feed():
-    return Response(gen_frames(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+def read_frame():
+    global camera, outputFrame, lock
+    while True:
+        ret, frame = camera.read()
+        with lock:
+            outputFrame = frame.copy()
+
+t = threading.Thread(target=read_frame)
+t.daemon = True
+t.start()
 
 if __name__ == '__main__':
-    socketio.run(app)
+    from gunicorn.app.wsgiapp import run
+    run()

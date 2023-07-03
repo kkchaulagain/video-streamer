@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Video Streaming</title>
+  </head>
+  <body>
+    <h1>Video Streaming</h1>
+    <img id="stream" src="" width="70%" />
+    <script>
+      setInterval(() => {
+        document.getElementById("stream").src =
+          "/video_feed?t=" + new Date().getTime();
+      }, 100);
+    </script>
+  </body>
+</html>
